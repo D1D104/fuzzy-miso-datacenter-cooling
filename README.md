@@ -138,6 +138,26 @@ O controlador inclui lógica de segurança para alertar sobre condições operac
 
 O fluxo Node-RED provê uma interface de controle e monitoramento visual.
 
+Para rodar, é necessário ter node e npm instalados
+
+```bash
+node --version; npm --version
+```
+
+Install Node-RED
+
+```bash
+npm install -g --unsafe-perm node-red
+```
+
+Rodar
+
+```bash
+node-red
+```
+
+Acessar a porta e importar o flow utilizando o arquivos flow.json
+
 #### Fluxo de Operação
 
 O arquivo flow.json (código JSON do fluxo) define o seguinte:
@@ -169,3 +189,9 @@ Os testes garantem a integridade do sistema, cobrindo:
 - Lógica Fuzzy: Teste dos extremos do controlador (e.g., erro muito negativo deve resultar em $\text{PCRAC}$ mínima, erro muito positivo em $\text{PCRAC}$ máxima).
 - Modelo de Planta: Validação da precisão matemática da equação de predição de temperatura.
 - Alertas: Simulação e verificação do disparo correto dos alertas de Temperatura Crítica, Eficiência Máxima e Oscilação de Controle.
+
+Rodar testes:
+
+```bash
+python test_controlador.py
+```
