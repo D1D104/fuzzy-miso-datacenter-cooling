@@ -169,9 +169,9 @@ O arquivo flow.json (código JSON do fluxo) define o seguinte:
    - Mapas Fuzzy: O gráfico das funções de pertinência (datacenter/fuzzy/img/rules) é exibido em um ui_template.
 3. Processamento de Alertas: Um nó function parseia o payload JSON do tópico datacenter/fuzzy/alert e gera toasts coloridos no dashboard com base na severidade (crítica, alta, etc.).
 
-<img src="/imagens/pertubacoes.png" alt="Perturbações" width="50%"/>
-<img src="/imagens/monitoramento.png" alt="Monitoramento" width="50%"/>
-<img src="/imagens/fuzzy_interface.png" alt="Interface fuzzy" width="50%"/>
+<img src="/imagens/pertubacoes.png" alt="Perturbações" width="100%"/>
+<img src="/imagens/monitoramento.png" alt="Monitoramento" width="100%"/>
+<img src="/imagens/fuzzy_interface.png" alt="Interface fuzzy" width="100%"/>
 
 ### Alertas críticos e de comunicação
 
