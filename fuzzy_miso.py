@@ -122,6 +122,44 @@ def on_message(client, userdata, msg):
     except:
         pass
 
+
+#########################################################################
+# MQTT background loop explanation & graceful shutdown helper
+#
+# O que client.loop_start() faz?
+# - Inicia uma thread separada que mantém a conexão com o broker MQTT (keep-alive).
+# - Escuta continuamente o socket e processa mensagens recebidas.
+# - Chama callbacks como on_message mesmo quando o loop principal (while True)
+#   está parado ou aguardando.
+#
+# Por que ele continua rodando?
+# - Quando você interrompe o loop principal (Ctrl+C), a thread de rede criada
+#   por client.loop_start() continua ativa em segundo plano até que seja parada
+#   explicitamente.
+# - Para um encerramento limpo você precisa parar essa thread e desconectar o
+#   cliente do broker.
+#
+# Como parar corretamente:
+# - Use client.loop_stop() e client.disconnect() em um bloco try/finally para
+#   garantir que sejam executados mesmo em interrupções (KeyboardInterrupt).
+#
+def graceful_shutdown(client):
+    """Parar corretamente a thread MQTT e desconectar do broker.
+
+    Executar client.loop_stop() seguido de client.disconnect() garante que a
+    thread de rede seja parada e a conexão seja finalizada.
+    """
+    try:
+        # Se cliente é None ou não implementa, falhará silenciosamente
+        client.loop_stop()
+    except Exception:
+        pass
+    try:
+        client.disconnect()
+    except Exception:
+        pass
+
+
 client = mqtt.Client()
 client.on_connect = on_connect
 client.on_disconnect = on_disconnect
@@ -160,12 +198,18 @@ erro_anterior = 0.0
 
 MAX_POWER_THRESHOLD = 95.0
 MAX_POWER_DURATION_SEC = 10.0
-loop_interval = 1
+# default loop iterval (seconds) between samples — reduce to improve sampling rate
+loop_interval = 0.1
 max_power_counter = 0
 max_power_required_iters = int(MAX_POWER_DURATION_SEC / loop_interval)
 OSC_WINDOW = 20  # número de amostras na janela
 osc_history = []  # armazena sinais de erro (positivo/negativo/zero)
 OSC_SIGN_CHANGE_THRESHOLD = 6  # se houver mais que isso em janela, alerta
+# Throttle: generation of the inference image is expensive (matplotlib). Only
+# produce and publish the inference image every INFERENCE_IMG_PERIOD_SEC seconds
+# (set to None to disable).
+INFERENCE_IMG_PERIOD_SEC = 10.0
+last_inference_img_at = 0.0
 
 def inference_debug(erro_val, varerro_val, pcrac_universe, consequents_terms, antecedents):
     rule_infos = []
@@ -245,107 +289,115 @@ if __name__ == "__main__":
 
     print("Sistema Fuzzy Iniciado. Aguardando comandos...")
 
-    while True:
-        erro_atual = T_n - T_SETPOINT
-        var_erro = erro_atual - erro_anterior
+    try:
+        while True:
+            erro_atual = T_n - T_SETPOINT
+            var_erro = erro_atual - erro_anterior
 
-        simulacao.input['errotemp'] = erro_atual
-        simulacao.input['varerrotemp'] = var_erro
+            simulacao.input['errotemp'] = erro_atual
+            simulacao.input['varerrotemp'] = var_erro
 
-        try:
-            simulacao.compute()
-            PCRAC_val = simulacao.output['pcrac']
-        except:
-            pass
-        antecedents = {
-            'errotemp': (errotemp.universe, {label: errotemp[label].mf for label in errotemp.terms}),
-            'varerrotemp': (varerrotemp.universe, {label: varerrotemp[label].mf for label in varerrotemp.terms})
-        }
-        consequents_terms = {label: pcrac[label].mf for label in pcrac.terms}
-        pcrac_universe = pcrac.universe
+            try:
+                simulacao.compute()
+                PCRAC_val = simulacao.output['pcrac']
+            except:
+                pass
+            antecedents = {
+                'errotemp': (errotemp.universe, {label: errotemp[label].mf for label in errotemp.terms}),
+                'varerrotemp': (varerrotemp.universe, {label: varerrotemp[label].mf for label in varerrotemp.terms})
+            }
+            consequents_terms = {label: pcrac[label].mf for label in pcrac.terms}
+            pcrac_universe = pcrac.universe
 
-        rule_infos, agg_mu, defuzz_val = inference_debug(erro_atual, var_erro, pcrac_universe, consequents_terms, antecedents)
+            rule_infos, agg_mu, defuzz_val = inference_debug(erro_atual, var_erro, pcrac_universe, consequents_terms, antecedents)
 
-        inference_payload = {
-            "timestamp": iso_ts(),
-            "operating_point": {"T": round(T_n, 3), "pcrac": round(PCRAC_val, 3), "erro": round(erro_atual, 3), "var_erro": round(var_erro, 3)},
-            "rules": rule_infos,
-            "defuzzified": round(defuzz_val, 3),
-            "aggregation": {"x": pcrac_universe.tolist(), "mu": [round(float(x), 6) for x in agg_mu]}
-        }
+            inference_payload = {
+                "timestamp": iso_ts(),
+                "operating_point": {"T": round(T_n, 3), "pcrac": round(PCRAC_val, 3), "erro": round(erro_atual, 3), "var_erro": round(var_erro, 3)},
+                "rules": rule_infos,
+                "defuzzified": round(defuzz_val, 3),
+                "aggregation": {"x": pcrac_universe.tolist(), "mu": [round(float(x), 6) for x in agg_mu]}
+            }
 
-        try:
-            client.publish(TOPIC_INFERENCE, json.dumps(inference_payload))
-        except Exception:
-            pass
+            try:
+                client.publish(TOPIC_INFERENCE, json.dumps(inference_payload))
+            except Exception:
+                pass
 
-        try:
-            img_data = plot_inference(erro_atual, var_erro, pcrac_universe, antecedents, consequents_terms, rule_infos, agg_mu, defuzz_val)
-            client.publish(TOPIC_INFERENCE_IMG, img_data, retain=False)
-        except Exception:
-            pass
+            try:
+                img_data = plot_inference(erro_atual, var_erro, pcrac_universe, antecedents, consequents_terms, rule_infos, agg_mu, defuzz_val)
+                client.publish(TOPIC_INFERENCE_IMG, img_data, retain=False)
+            except Exception:
+                pass
 
-        T_next = (0.9 * T_n) - (0.08 * PCRAC_val) + (0.05 * Qest) + (0.02 * Text) + 3.5
+            T_next = (0.9 * T_n) - (0.08 * PCRAC_val) + (0.05 * Qest) + (0.02 * Text) + 3.5
 
-        client.publish(TOPIC_CONTROL, round(PCRAC_val, 2))
-        client.publish(TOPIC_TEMP, round(T_next, 2))
+            client.publish(TOPIC_CONTROL, round(PCRAC_val, 2))
+            client.publish(TOPIC_TEMP, round(T_next, 2))
 
-        if T_next < 18:
-            publish_alert(client,
-                        alert_type="crítico",
-                        message="Temperatura abaixo do limite seguro",
-                        data={"temperature": round(T_next, 2), "limit": 18.0},
-                        severity="crítica")
-        elif T_next > 26:
-            publish_alert(client,
-                        alert_type="crítico",
-                        message="Temperatura acima do limite seguro",
-                        data={"temperature": round(T_next, 2), "limit": 26.0},
-                        severity="crítica")
+            if T_next < 18:
+                publish_alert(client,
+                            alert_type="crítico",
+                            message="Temperatura abaixo do limite seguro",
+                            data={"temperature": round(T_next, 2), "limit": 18.0},
+                            severity="crítica")
+            elif T_next > 26:
+                publish_alert(client,
+                            alert_type="crítico",
+                            message="Temperatura acima do limite seguro",
+                            data={"temperature": round(T_next, 2), "limit": 26.0},
+                            severity="crítica")
 
-        if PCRAC_val >= MAX_POWER_THRESHOLD:
-            max_power_counter += 1
-        else:
-            if max_power_counter >= max_power_required_iters:
+            if PCRAC_val >= MAX_POWER_THRESHOLD:
+                max_power_counter += 1
+            else:
+                if max_power_counter >= max_power_required_iters:
+                    publish_alert(client,
+                                alert_type="eficiência",
+                                message="CRAC operou em potência máxima por período prolongado",
+                                data={"pcrac": round(PCRAC_val, 2), "duration_sec": max_power_counter * loop_interval},
+                                severity="alta")
+                max_power_counter = 0
+
+            if max_power_counter == max_power_required_iters:
                 publish_alert(client,
                             alert_type="eficiência",
-                            message="CRAC operou em potência máxima por período prolongado",
+                            message="CRAC atingiu potência máxima por tempo prolongado",
                             data={"pcrac": round(PCRAC_val, 2), "duration_sec": max_power_counter * loop_interval},
                             severity="alta")
-            max_power_counter = 0
 
-        if max_power_counter == max_power_required_iters:
-            publish_alert(client,
-                        alert_type="eficiência",
-                        message="CRAC atingiu potência máxima por tempo prolongado",
-                        data={"pcrac": round(PCRAC_val, 2), "duration_sec": max_power_counter * loop_interval},
-                        severity="alta")
+            sign = 0
+            if erro_atual > 0.05:
+                sign = 1
+            elif erro_atual < -0.05:
+                sign = -1
 
-        sign = 0
-        if erro_atual > 0.05:
-            sign = 1
-        elif erro_atual < -0.05:
-            sign = -1
+            if len(osc_history) >= OSC_WINDOW:
+                osc_history.pop(0)
+            osc_history.append(sign)
 
-        if len(osc_history) >= OSC_WINDOW:
-            osc_history.pop(0)
-        osc_history.append(sign)
+            sign_changes = 0
+            prev = osc_history[0] if osc_history else 0
+            for s in osc_history[1:]:
+                if s != 0 and prev != 0 and s != prev:
+                    sign_changes += 1
+                if s != 0:
+                    prev = s
+                if sign_changes >= OSC_SIGN_CHANGE_THRESHOLD:
+                    publish_alert(client,
+                                alert_type="estabilidade",
+                                message="Oscilações excessivas detectadas no erro de temperatura",
+                                data={"sign_changes": sign_changes, "window_samples": len(osc_history), "erro_atual": round(erro_atual, 3)},
+                                severity="média")
+                    osc_history.clear()
 
-        sign_changes = 0
-        prev = osc_history[0] if osc_history else 0
-        for s in osc_history[1:]:
-            if s != 0 and prev != 0 and s != prev:
-                sign_changes += 1
-            if s != 0:
-                prev = s
-        if sign_changes >= OSC_SIGN_CHANGE_THRESHOLD:
-            publish_alert(client,
-                        alert_type="estabilidade",
-                        message="Oscilações excessivas detectadas no erro de temperatura",
-                        data={"sign_changes": sign_changes, "window_samples": len(osc_history), "erro_atual": round(erro_atual, 3)},
-                        severity="média")
-            osc_history.clear()
+                erro_anterior = erro_atual
+                T_n = T_next
+                time.sleep(loop_interval)
 
-        erro_anterior = erro_atual
-        T_n = T_next
-        time.sleep(loop_interval)
+    except KeyboardInterrupt:
+        print('\nInterrupção detectada. Encerrando graceful...')
+
+    finally:
+        graceful_shutdown(client)
+        print('Cliente MQTT desconectado e loop parado.')
