@@ -45,16 +45,23 @@ python fuzzy_miso.py
 
 O sistema segue o padrão MISO (Multiple-Input, Single-Output), operando em uma arquitetura de microsserviços leves (Python, MQTT e Node-RED).
 
-1. Controlador Fuzzy (O Cérebro)
-   O controlador é um sistema Mamdani que recebe duas entradas e calcula uma saída.
+1. Controlador Fuzzy
+   O controlador utilizado nesse projeto é um sistema Mamdani que recebe duas entradas e calcula uma saída.
 
-| Variável    | Tipo                 | Universo (Alcance) | Descrição                    |
-| ----------- | -------------------- | ------------------ | ---------------------------- |
-| errotemp    | Antecedente (Input)  | [−16, 16.1] °C     | Erro: Tn − Tsetpoint         |
-| varerrotemp | Antecedente (Input)  | [−2, 2.1] °C/loop  | Derivativo: Errok − Errok−1  |
-| pcrac       | Consequente (Output) | [0, 101] %         | Potência de Controle do CRAC |
+| Variável    | Tipo                 | Universo (Alcance) | Descrição                      |
+| ----------- | -------------------- | ------------------ | ------------------------------ |
+| errotemp    | Antecedente (Input)  | [−16, 16.1] °C     | Erro: Tn − Tsetpoint           |
+| varerrotemp | Antecedente (Input)  | [−2, 2.1] °C/loop  | Derivativo: Erro_k − Erro_k−1  |
+| pcrac       | Consequente (Output) | [0, 101] %         | Potência de Controle do CRAC   |
 
 2. Funções de Pertinência
+
+As funções de pertinência são usadas para calcular quais conjuntos da entrada (para as funções das variáveis de entrada) e quais regras (para a função de pertinência de saída) estão sendo ativadas dada uma determinada temperatura. É importante que os gráficos dos conjuntos se sobreponham para que o sistema fuzzy funcione corretamente.
+
+Funções de pertinência das variáveis de entrada: considerando os setpoints desejados (16; 22; 25; 32) e que a temperatura varia entre 16 e 32 graus celsius, o erro mínimo e máximo podem ser calculados da seguinte forma:
+   e_min = T_min - Setpoint_max = 16 - 32 = -16
+   e_max = T_max - Setpoint_min = 32 - 16 = 16
+
 
 As funções de pertinência triangulares e trapezoidais definem os conjuntos fuzzy das variáveis:
 | Variável | Conjuntos Linguísticos  
@@ -67,21 +74,26 @@ Gráficos das Funções de Pertinência:
 
 ![Gráficos](/imagens/graficos.png)
 
-3. Base de Regras (Matriz de Decisão)
+3. Base de Regras
 
 O controlador utiliza uma matriz de 5x5 com 25 regras, garantindo uma resposta suave e adaptativa. A lógica segue o princípio de que, se a temperatura estiver alta (errotemp = MP) e aumentando (varerrotemp = MP), a potência deve ser máxima (MA).
 
+Para garantir a convergência do sistema, as regras foram escritas de forma que houvessem poucos ou nenhum saltos entre as regras, exemplo de MB para M é um salto.
+
+O erro foi tomado como variável principal, sendo as regras ditadas principalmente por ele, e a variação do erro foi usada para aperfeiçoar o sistema. Percebe-se que quando a temperatura está muito abaixo do setpoint, porém a variação do erro está muito elevada, a saída do sistema é a potência baixa. Essa decisão foi feita poque por mais que a temperatura esteja baixa, houve um aumento de temepratura elevado anteriormente indicado pela variação do erro, portanto não é necessário elevar tanto a potência do sistema de refrigeração.
+
+]
 | varerrotemp \ errotemp | MN  | PN  | ZE  | PP  | MP  |
 | ---------------------- | --- | --- | --- | --- | --- |
-| MN                     | MB  | MB  | B   | A   | A   |
-| PN                     | MB  | MB  | M   | A   | MA  |
+| MN                     | MB  | MB  | B   | M   | A   |
+| PN                     | MB  | B   | M   | A   | MA  |
 | ZE                     | MB  | B   | M   | A   | MA  |
-| PP                     | MB  | B   | M   | MA  | MA  |
-| MP                     | B   | M   | M   | MA  | MA  |
+| PP                     | MB  | B   | M   | A   | MA  |
+| MP                     | B   | M   | A   | MA  | MA  |
 
 <hr>
 
-## Modelo de Simulação (A Planta Física)
+## Função de Transferência
 
 O comportamento térmico do Data Center é simulado internamente pelo controlador através de uma equação de diferenças de primeira ordem, que considera a inércia, a ação de controle e as perturbações externas:
 $$\mathbf{T_{next}} = (0.9 \cdot T_n) - (0.08 \cdot \text{PCRAC}) + (0.05 \cdot Qest) + (0.02 \cdot Text) + 3.5$$
