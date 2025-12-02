@@ -147,8 +147,7 @@ O controlador inclui lógica de segurança para alertar sobre condições operac
 
 ### Diagrama de Fluxo Principal (Algoritmo do Controlador)
 
-```mermaid
-graph TD
+```bash
 graph TD
     A[INÍCIO: Configuração e Setup] --> B{Conectar MQTT & Iniciar Thread de Escuta};
     B --> C[Definir Universo e Conjuntos Fuzzy];
@@ -184,7 +183,7 @@ graph TD
 
 ### Diagrama de Fluxo Principal (Algoritmo do Controlador)
 
-```mermaid
+```text
 graph LR
     subgraph Controlador Python
         Python[fuzzy_controller.py]
@@ -225,7 +224,7 @@ O fluxo Node-RED provê uma interface de controle e monitoramento visual.
 
 Para rodar, é necessário ter node e npm instalados
 
-```bash
+```text
 node --version; npm --version
 ```
 
