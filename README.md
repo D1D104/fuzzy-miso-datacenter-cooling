@@ -51,7 +51,7 @@ O sistema segue o padrão MISO (Multiple-Input, Single-Output), operando em uma 
 | Variável    | Tipo                 | Universo (Alcance) | Descrição                     |
 | ----------- | -------------------- | ------------------ | ----------------------------- |
 | errotemp    | Antecedente (Input)  | [−16, 16.1] °C     | Erro: Tn − Tsetpoint          |
-| varerrotemp | Antecedente (Input)  | [−2, 2.1] °C/loop  | Derivativo: Erro_k − Erro_k−1 |
+| varerrotemp | Antecedente (Input)  | [−2, 2.1] °C       | Derivativo: Erro_k − Erro_k−1 |
 | pcrac       | Consequente (Output) | [0, 101] %         | Potência de Controle do CRAC  |
 
 2. Funções de Pertinência
@@ -101,7 +101,7 @@ O erro foi tomado como variável principal, sendo as regras ditadas principalmen
 ## Função de Transferência
 
 O comportamento térmico do Data Center é simulado internamente pelo controlador através de uma equação de diferenças de primeira ordem, que considera a inércia, a ação de controle e as perturbações externas:
-$$\mathbf{T_{next}} = (0.9 \cdot T_n) - (0.08 \cdot \text{PCRAC}) + (0.05 \cdot Qest) + (0.02 \cdot Text) + 3.5$$
+$$\mathbf{T_{next}} = (0.9 \cdot T_n) - (0.072 \cdot \text{PCRAC}) + (0.045 \cdot Qest) + (0.02 \cdot Text) + 3.5$$
 
 Onde:
 
@@ -109,10 +109,12 @@ Onde:
 - $\text{PCRAC}$: Potência de resfriamento (variável de controle, $0-100\%$).
 - $Qest$ (cargaTermica): Carga térmica de equipamentos (perturbação, $0-100$).
 - $Text$ (temp/externa): Temperatura externa (perturbação, ${}^\circ\text{C}$).
-- $0.9$, $-0.08$, $0.05$, $0.02$: Coeficientes de inércia, resfriamento, carga e perturbação externa, respectivamente.
+- $0.9$, $-0.072$, $0.045$, $0.02$: Coeficientes de inércia, resfriamento, carga e perturbação externa, respectivamente.
 - $3.5$: Constante de aquecimento de base.
 
 <hr>
+
+Os coeficientes de resfriamento e de carga foram ajustados para o aperfeiçoamento da saída do sistema.
 
 ## Comunicação MQTT
 
