@@ -36,11 +36,11 @@ errotemp['ZE'] = fuzz.trimf(errotemp.universe, [-6, 0, 6])
 errotemp['PP'] = fuzz.trimf(errotemp.universe, [0, 6, 12])
 errotemp['MP'] = fuzz.trapmf(errotemp.universe, [6, 12, 16, 16])
 
-varerrotemp['MN'] = fuzz.trapmf(varerrotemp.universe, [-2, -2, -0.2, -0.1])
-varerrotemp['PN'] = fuzz.trimf(varerrotemp.universe, [-0.2, -0.1, 0])
-varerrotemp['ZE'] = fuzz.trimf(varerrotemp.universe, [-0.1, 0, 0.1])
-varerrotemp['PP'] = fuzz.trimf(varerrotemp.universe, [0, 0.1, 0.2])
-varerrotemp['MP'] = fuzz.trapmf(varerrotemp.universe, [0.1, 0.2, 2, 2])
+varerrotemp['MN'] = fuzz.trapmf(varerrotemp.universe, [-2, -2, -0.8, -0.4])
+varerrotemp['PN'] = fuzz.trimf(varerrotemp.universe, [-0.8, -0.4, 0])
+varerrotemp['ZE'] = fuzz.trimf(varerrotemp.universe, [-0.4, 0, 0.4])
+varerrotemp['PP'] = fuzz.trimf(varerrotemp.universe, [0, 0.4, 0.8])
+varerrotemp['MP'] = fuzz.trapmf(varerrotemp.universe, [0.4, 0.8, 2.1, 2.1])
 
 pcrac['MB'] = fuzz.trimf(pcrac.universe, [0, 0, 25])
 pcrac['B']  = fuzz.trimf(pcrac.universe, [0, 25, 50])
@@ -330,7 +330,7 @@ if __name__ == "__main__":
             except Exception:
                 pass
 
-            T_next = (0.9 * T_n) - (0.08 * PCRAC_val) + (0.05 * Qest) + (0.02 * Text) + 3.5
+            T_next = (0.9 * T_n) - (0.072 * PCRAC_val) + (0.045 * Qest) + (0.02 * Text) + 3.5
 
             client.publish(TOPIC_CONTROL, round(PCRAC_val, 2))
             client.publish(TOPIC_TEMP, round(T_next, 2))
