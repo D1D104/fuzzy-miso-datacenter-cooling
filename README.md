@@ -149,10 +149,11 @@ O controlador inclui lógica de segurança para alertar sobre condições operac
 
 ```mermaid
 graph TD
+graph TD
     A[INÍCIO: Configuração e Setup] --> B{Conectar MQTT & Iniciar Thread de Escuta};
     B --> C[Definir Universo e Conjuntos Fuzzy];
     C --> D[Gerar & Publicar Imagem das Regras];
-    D --> E(Inicializar Variáveis Globais (T_n, Qest, Text));
+    D --> E[Inicializar Variáveis Globais (T_n, Qest, Text)];
     E --> F{LOOP PRINCIPAL (a cada 0.1s)};
 
     F --> G[1. Calcular Erro (T_n - 22.0)];
@@ -162,7 +163,7 @@ graph TD
     I --> J[4. Computar Inferência e Defuzzificação];
     J --> K[5. Obter Potência de Controle (PCRAC_val)];
 
-    K --> L(6. TELEMETRIA: Publicar JSON e Gráfico B64 da Inferência);
+    K --> L[6. TELEMETRIA: Publicar JSON e Gráfico B64 da Inferência];
     L --> M[7. SIMULAÇÃO DA PLANTA: Calcular T_next];
 
     M --> N[8. OUTPUT: Publicar T_next e PCRAC_val via MQTT];
@@ -177,7 +178,7 @@ graph TD
     P3 -- Não/Cont. --> R;
 
     R[10. ATUALIZAR ESTADO: T_n = T_next, erro_anterior = erro_atual];
-    R --> S(11. Pausar (0.1s));
+    R --> S[11. Pausar (0.1s)];
     S --> F;
 ```
 
@@ -185,37 +186,37 @@ graph TD
 
 ```mermaid
 graph LR
-    subgraph Controlador Python
-        Python[fuzzy_controller.py]
-    end
+    subgraph Controlador Python
+        Python[fuzzy_controller.py]
+    end
 
-    subgraph Broker MQTT (test.mosquitto.org)
-        Broker
-    end
+    subgraph Broker MQTT (test.mosquitto.org)
+        Broker[Broker MQTT]
+    end
 
-    subgraph Dashboard Node-RED (Interface Web)
-        A(Sliders: T. Externa, Carga Térmica)
-        B(Gauges, Charts, Imagens, Alertas)
-        C(Botão/Comando Reset)
-    end
+    subgraph Dashboard Node-RED (Interface Web)
+        A[Sliders: T. Externa, Carga Térmica]
+        B[Gauges, Charts, Imagens, Alertas]
+        C[Botão/Comando Reset]
+    end
 
-    %% Inputs (Perturbações)
-    A -- entrada/temp/externa --> Broker
-    A -- entrada/cargaTermica --> Broker
-    Broker --> Python
+    %% Inputs (Perturbações)
+    A -- entrada/temp/externa --> Broker
+    A -- entrada/cargaTermica --> Broker
+    Broker --> Python
 
-    %% Saídas (Controle e Telemetria)
-    Python -- datacenter/fuzzy/control --> Broker
-    Python -- datacenter/fuzzy/temp --> Broker
-    Python -- datacenter/fuzzy/alert (JSON) --> Broker
-    Python -- datacenter/fuzzy/inference/img (B64) --> Broker
+    %% Saídas (Controle e Telemetria)
+    Python -- datacenter/fuzzy/control --> Broker
+    Python -- datacenter/fuzzy/temp --> Broker
+    Python -- datacenter/fuzzy/alert (JSON) --> Broker
+    Python -- datacenter/fuzzy/inference/img (B64) --> Broker
 
-    %% Exibição no Node-RED
-    Broker --> B
+    %% Exibição no Node-RED
+    Broker --> B
 
-    %% Reset
-    C -- datacenter/fuzzy/reset --> Broker
-    Broker --> Python
+    %% Reset
+    C -- datacenter/fuzzy/reset --> Broker
+    Broker --> Python
 ```
 
 ## Dashboard Node-RED
