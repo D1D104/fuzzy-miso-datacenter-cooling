@@ -53,11 +53,11 @@ erro_labels = ['MN', 'PN', 'ZE', 'PP', 'MP']
 delta_labels = ['MN', 'PN', 'ZE', 'PP', 'MP']
 
 matriz_saida = [
-    ['MB',  'MB',  'B',  'A',  'A' ],
-    ['MB', 'MB',  'M',  'A',  'MA' ],
+    ['MB',  'MB',  'B',  'M',  'A' ],
     ['MB', 'B',  'M',  'A',  'MA' ],
-    ['MB', 'B', 'M',  'MA',  'MA' ],
-    ['B', 'M', 'M', 'MA',  'MA'  ]
+    ['MB', 'B',  'M',  'A',  'MA' ],
+    ['MB', 'B', 'M',  'A',  'MA' ],
+    ['B', 'M', 'A', 'MA',  'MA'  ]
 ]
 
 for i, d_label in enumerate(delta_labels):
