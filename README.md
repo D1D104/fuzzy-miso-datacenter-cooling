@@ -59,8 +59,12 @@ O sistema segue o padrão MISO (Multiple-Input, Single-Output), operando em uma 
 As funções de pertinência são usadas para calcular quais conjuntos da entrada (para as funções das variáveis de entrada) e quais regras (para a função de pertinência de saída) estão sendo ativadas dada uma determinada temperatura. É importante que os gráficos dos conjuntos se sobreponham para que o sistema fuzzy funcione corretamente.
 
 Funções de pertinência das variáveis de entrada: considerando os setpoints desejados (16; 22; 25; 32) e que a temperatura varia entre 16 e 32 graus celsius, o erro mínimo e máximo podem ser calculados da seguinte forma:
+
 e_min = T_min - Setpoint_max = 16 - 32 = -16
+
 e_max = T_max - Setpoint_min = 32 - 16 = 16
+
+Para a variação do erro foram considerados os valores mínimo e máximo como -2 e 2, respectivamente. Isso se dá pelo fato de que a variação do erro não pode ser muito abrupta.
 
 As funções de pertinência triangulares e trapezoidais definem os conjuntos fuzzy das variáveis:
 | Variável | Conjuntos Linguísticos  
