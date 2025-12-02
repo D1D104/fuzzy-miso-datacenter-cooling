@@ -64,7 +64,9 @@ e_min = T_min - Setpoint_max = 16 - 32 = -16
 
 e_max = T_max - Setpoint_min = 32 - 16 = 16
 
-Para a variação do erro foram considerados os valores mínimo e máximo como -2 e 2, respectivamente. Isso se dá pelo fato de que a variação do erro não pode ser muito abrupta.
+Para a variação do erro foram considerados os valores mínimo e máximo como -2 e 2, respectivamente. Isso se dá pelo fato de que a variação do erro não pode ser muito abrupta entre as medidas.
+
+Função de pertinência de saída: A potência pode variar entre 0% e 100%. Os triângulos que representam os conjuntos da saída foram divididos igualmente no eixo da potência.
 
 As funções de pertinência triangulares e trapezoidais definem os conjuntos fuzzy das variáveis:
 | Variável | Conjuntos Linguísticos  
