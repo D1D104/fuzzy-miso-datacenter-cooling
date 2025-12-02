@@ -48,20 +48,19 @@ O sistema segue o padrão MISO (Multiple-Input, Single-Output), operando em uma 
 1. Controlador Fuzzy
    O controlador utilizado nesse projeto é um sistema Mamdani que recebe duas entradas e calcula uma saída.
 
-| Variável    | Tipo                 | Universo (Alcance) | Descrição                      |
-| ----------- | -------------------- | ------------------ | ------------------------------ |
-| errotemp    | Antecedente (Input)  | [−16, 16.1] °C     | Erro: Tn − Tsetpoint           |
-| varerrotemp | Antecedente (Input)  | [−2, 2.1] °C/loop  | Derivativo: Erro_k − Erro_k−1  |
-| pcrac       | Consequente (Output) | [0, 101] %         | Potência de Controle do CRAC   |
+| Variável    | Tipo                 | Universo (Alcance) | Descrição                     |
+| ----------- | -------------------- | ------------------ | ----------------------------- |
+| errotemp    | Antecedente (Input)  | [−16, 16.1] °C     | Erro: Tn − Tsetpoint          |
+| varerrotemp | Antecedente (Input)  | [−2, 2.1] °C/loop  | Derivativo: Erro_k − Erro_k−1 |
+| pcrac       | Consequente (Output) | [0, 101] %         | Potência de Controle do CRAC  |
 
 2. Funções de Pertinência
 
 As funções de pertinência são usadas para calcular quais conjuntos da entrada (para as funções das variáveis de entrada) e quais regras (para a função de pertinência de saída) estão sendo ativadas dada uma determinada temperatura. É importante que os gráficos dos conjuntos se sobreponham para que o sistema fuzzy funcione corretamente.
 
 Funções de pertinência das variáveis de entrada: considerando os setpoints desejados (16; 22; 25; 32) e que a temperatura varia entre 16 e 32 graus celsius, o erro mínimo e máximo podem ser calculados da seguinte forma:
-   e_min = T_min - Setpoint_max = 16 - 32 = -16
-   e_max = T_max - Setpoint_min = 32 - 16 = 16
-
+e_min = T_min - Setpoint_max = 16 - 32 = -16
+e_max = T_max - Setpoint_min = 32 - 16 = 16
 
 As funções de pertinência triangulares e trapezoidais definem os conjuntos fuzzy das variáveis:
 | Variável | Conjuntos Linguísticos  
@@ -83,13 +82,13 @@ Para garantir a convergência do sistema, as regras foram escritas de forma que 
 O erro foi tomado como variável principal, sendo as regras ditadas principalmente por ele, e a variação do erro foi usada para aperfeiçoar o sistema. Percebe-se que quando a temperatura está muito abaixo do setpoint, porém a variação do erro está muito elevada, a saída do sistema é a potência baixa. Essa decisão foi feita poque por mais que a temperatura esteja baixa, houve um aumento de temepratura elevado anteriormente indicado pela variação do erro, portanto não é necessário elevar tanto a potência do sistema de refrigeração.
 
 ]
-| varerrotemp \ errotemp | MN  | PN  | ZE  | PP  | MP  |
+| varerrotemp \ errotemp | MN | PN | ZE | PP | MP |
 | ---------------------- | --- | --- | --- | --- | --- |
-| MN                     | MB  | MB  | B   | M   | A   |
-| PN                     | MB  | B   | M   | A   | MA  |
-| ZE                     | MB  | B   | M   | A   | MA  |
-| PP                     | MB  | B   | M   | A   | MA  |
-| MP                     | B   | M   | A   | MA  | MA  |
+| MN | MB | MB | B | M | A |
+| PN | MB | B | M | A | MA |
+| ZE | MB | B | M | A | MA |
+| PP | MB | B | M | A | MA |
+| MP | B | M | A | MA | MA |
 
 <hr>
 
@@ -145,6 +144,79 @@ O controlador inclui lógica de segurança para alertar sobre condições operac
 | Estabilidade   | média      | Oscilações excessivas: ≥6 mudanças de sinal de erro (positivo ↔ negativo) dentro de uma janela de 20 amostras, indicando instabilidade (chattering). |
 
 <hr>
+
+### Diagrama de Fluxo Principal (Algoritmo do Controlador)
+
+```mermaid
+graph TD
+    A[INÍCIO: Configuração e Setup] --> B{Conectar MQTT & Iniciar Thread de Escuta};
+    B --> C[Definir Universo e Conjuntos Fuzzy];
+    C --> D[Gerar & Publicar Imagem das Regras];
+    D --> E(Inicializar Variáveis Globais (T_n, Qest, Text));
+    E --> F{LOOP PRINCIPAL (a cada 0.1s)};
+
+    F --> G[1. Calcular Erro (T_n - 22.0)];
+    G --> H[2. Calcular Variação do Erro];
+
+    H --> I[3. Injetar Entradas na Simulação Fuzzy];
+    I --> J[4. Computar Inferência e Defuzzificação];
+    J --> K[5. Obter Potência de Controle (PCRAC_val)];
+
+    K --> L(6. TELEMETRIA: Publicar JSON e Gráfico B64 da Inferência);
+    L --> M[7. SIMULAÇÃO DA PLANTA: Calcular T_next];
+
+    M --> N[8. OUTPUT: Publicar T_next e PCRAC_val via MQTT];
+
+    N --> O{9. VERIFICAÇÃO DE ALERTAS};
+    O --> P1{T_next fora de [18, 26]?};
+    P1 -- Sim --> Q1[Publicar Alerta CRÍTICO];
+    P1 -- Não --> P2{PCRAC > 95% por 10s?};
+    P2 -- Sim --> Q2[Publicar Alerta ALTA Eficiência];
+    P2 -- Não/Cont. --> P3{Oscilação do Erro?};
+    P3 -- Sim --> Q3[Publicar Alerta MÉDIA Estabilidade];
+    P3 -- Não/Cont. --> R;
+
+    R[10. ATUALIZAR ESTADO: T_n = T_next, erro_anterior = erro_atual];
+    R --> S(11. Pausar (0.1s));
+    S --> F;
+```
+
+### Diagrama de Fluxo Principal (Algoritmo do Controlador)
+
+```mermaid
+graph LR
+    subgraph Controlador Python
+        Python[fuzzy_controller.py]
+    end
+
+    subgraph Broker MQTT (test.mosquitto.org)
+        Broker
+    end
+
+    subgraph Dashboard Node-RED (Interface Web)
+        A(Sliders: T. Externa, Carga Térmica)
+        B(Gauges, Charts, Imagens, Alertas)
+        C(Botão/Comando Reset)
+    end
+
+    %% Inputs (Perturbações)
+    A -- entrada/temp/externa --> Broker
+    A -- entrada/cargaTermica --> Broker
+    Broker --> Python
+
+    %% Saídas (Controle e Telemetria)
+    Python -- datacenter/fuzzy/control --> Broker
+    Python -- datacenter/fuzzy/temp --> Broker
+    Python -- datacenter/fuzzy/alert (JSON) --> Broker
+    Python -- datacenter/fuzzy/inference/img (B64) --> Broker
+
+    %% Exibição no Node-RED
+    Broker --> B
+
+    %% Reset
+    C -- datacenter/fuzzy/reset --> Broker
+    Broker --> Python
+```
 
 ## Dashboard Node-RED
 
