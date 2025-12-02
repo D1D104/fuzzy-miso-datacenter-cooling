@@ -83,9 +83,9 @@ Gráficos das Funções de Pertinência:
 
 O controlador utiliza uma matriz de 5x5 com 25 regras, garantindo uma resposta suave e adaptativa. A lógica segue o princípio de que, se a temperatura estiver alta (errotemp = MP) e aumentando (varerrotemp = MP), a potência deve ser máxima (MA).
 
-Para garantir a convergência do sistema, as regras foram escritas de forma que houvessem poucos ou nenhum saltos entre as regras, exemplo de MB para M é um salto.
+Para garantir a convergência do sistema, as regras foram escritas de forma que houvessem nenhum ou poucos saltos entre as regras, exemplo: de MB para M é um salto de uma regra, pulando a regra B.
 
-O erro foi tomado como variável principal, sendo as regras ditadas principalmente por ele, e a variação do erro foi usada para aperfeiçoar o sistema. Percebe-se que quando a temperatura está muito abaixo do setpoint, porém a variação do erro está muito elevada, a saída do sistema é a potência baixa. Essa decisão foi feita poque por mais que a temperatura esteja baixa, houve um aumento de temepratura elevado anteriormente indicado pela variação do erro, portanto não é necessário elevar tanto a potência do sistema de refrigeração.
+O erro foi tomado como variável principal, sendo as regras ditadas principalmente por ele, e a variação do erro foi usada para aperfeiçoar o sistema. Tomando como exemplo quando a temperatura está muito abaixo do setpoint, porém a variação do erro está muito positiva, percebe-se que a saída do sistema é a potência baixa (B), e não muito baixa (MB). Essa decisão foi feita porque por mais que a temperatura esteja baixa, houve um aumento de temepratura elevado anteriormente indicado pela variação positiva do erro, pode-se considerar que essa variação positiva elevada é uma tendência do sistema em aumentar sua temperatura, o que o auxiliaria a entrar em equilíbrio nesse caso, portanto não é necessário elevar tanto a potência do sistema de refrigeração.
 
 | varerrotemp \ errotemp | MN | PN | ZE | PP | MP |
 | ---------------------- | --- | --- | --- | --- | --- |
