@@ -87,7 +87,6 @@ Para garantir a convergência do sistema, as regras foram escritas de forma que 
 
 O erro foi tomado como variável principal, sendo as regras ditadas principalmente por ele, e a variação do erro foi usada para aperfeiçoar o sistema. Percebe-se que quando a temperatura está muito abaixo do setpoint, porém a variação do erro está muito elevada, a saída do sistema é a potência baixa. Essa decisão foi feita poque por mais que a temperatura esteja baixa, houve um aumento de temepratura elevado anteriormente indicado pela variação do erro, portanto não é necessário elevar tanto a potência do sistema de refrigeração.
 
-]
 | varerrotemp \ errotemp | MN | PN | ZE | PP | MP |
 | ---------------------- | --- | --- | --- | --- | --- |
 | MN | MB | MB | B | M | A |
@@ -112,9 +111,9 @@ Onde:
 - $0.9$, $-0.072$, $0.045$, $0.02$: Coeficientes de inércia, resfriamento, carga e perturbação externa, respectivamente.
 - $3.5$: Constante de aquecimento de base.
 
-<hr>
-
 Os coeficientes de resfriamento e de carga foram ajustados para o aperfeiçoamento da saída do sistema.
+
+<hr>
 
 ## Comunicação MQTT
 
